@@ -29,6 +29,9 @@ object Environment extends PluginDefaults {
   lazy val sge = OsgiProject("sge", imports = Seq("*")) dependsOn (Core.exception, Core.workspace, Core.batch, gridscale, ssh) settings
     (libraryDependencies += Libraries.gridscaleSGE)
 
+  lazy val aws = OsgiProject("aws", imports = Seq("*")) dependsOn (Core.exception, Core.workspace, Core.batch, gridscale, ssh) settings
+    (libraryDependencies += Libraries.gridscaleAWS)
+
   lazy val condor = OsgiProject("condor", imports = Seq("*")) dependsOn (Core.exception, Core.workspace, Core.batch, gridscale, ssh) settings
     (libraryDependencies += Libraries.gridscaleCondor)
 

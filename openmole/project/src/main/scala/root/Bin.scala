@@ -155,6 +155,7 @@ object Bin extends Defaults(Core, Plugin, REST, Gui, Libraries, ThirdParties, ro
       gridscaleSLURM intransitive (),
       gridscaleGlite intransitive (),
       gridscaleSGE intransitive (),
+      gridscaleAWS intransitive (),
       gridscaleCondor intransitive (),
       gridscalePBS intransitive (),
       gridscaleOAR intransitive (),
