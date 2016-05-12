@@ -17,10 +17,8 @@
 
 package org.openmole.plugin.environment.aws
 
-import fr.iscpif.gridscale.aws.{ AWSJobService ⇒ GSAWSJobService, Starcluster, AWSJobDescription }
-import fr.iscpif.gridscale.sge.SGEJobService
+import fr.iscpif.gridscale.aws.{ AWSJobService ⇒ GSAWSJobService, AWSJobDescription }
 import fr.iscpif.gridscale.ssh.{ SSHConnectionCache, SSHHost }
-import org.jclouds.compute.ComputeService
 import org.openmole.core.batch.environment.SerializedJob
 import org.openmole.core.batch.jobservice.{ BatchJob, BatchJobId }
 import org.openmole.core.workspace.Workspace
@@ -34,24 +32,7 @@ import org.openmole.plugin.environment.aws.AWSJobService._
 trait AWSJobService extends ClusterJobService with SSHHost with SharedStorage { js ⇒
 
   def environment: AWSEnvironment
-
-  val jobService = new GSAWSJobService with SSHConnectionCache {
-    def host = js.host
-    def user = js.user
-    def credential = js.credential
-    override def port = js.port
-    override def timeout = Workspace.preference(SSHService.timeout)
-
-    override def region: String = ???
-
-    override def awsKeypairName: String = ???
-
-    override def client: ComputeService = ???
-
-    override def starcluster: Starcluster = ???
-
-    override def sge: SGEJobService = ???
-  }
+  val jobService: GSAWSJobService
 
   protected def _submit(serializedJob: SerializedJob) = {
     val (remoteScript, result) = buildScript(serializedJob)
@@ -73,6 +54,5 @@ trait AWSJobService extends ClusterJobService with SSHHost with SharedStorage { 
       val resultPath = result
     }
   }
-
 }
 
