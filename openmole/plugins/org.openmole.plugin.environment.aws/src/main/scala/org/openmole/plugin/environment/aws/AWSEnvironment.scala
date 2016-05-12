@@ -17,16 +17,28 @@
 
 package org.openmole.plugin.environment.aws
 
-import org.openmole.core.batch.environment.MemoryRequirement
-import org.openmole.core.workspace.Decrypt
-import org.openmole.plugin.environment.ssh.{ SSHAuthentication, ClusterEnvironment }
+import java.io.File
+
+import fr.iscpif.gridscale.authentication.PrivateKey
 
 import scala.concurrent.duration.Duration
 
+import fr.iscpif.gridscale.aws.{ AWSJobService ⇒ GSAWSJobService, Starcluster }
+import fr.iscpif.gridscale.aws.AWSJobService._
+import fr.iscpif.gridscale.ssh._
+import org.openmole.core.batch.environment.MemoryRequirement
+import org.openmole.core.workspace.{ Decrypt, Workspace }
+import org.openmole.plugin.environment.ssh.{ ClusterEnvironment, SSHAuthentication, SSHService }
+
 object AWSEnvironment {
   def apply(
-    user:                 String,
-    host:                 String,
+    region:               String,
+    awsUserName:          String,
+    awsUserId:            String,
+    awsKeypairName:       String,
+    awsCredentialsPath:   String,
+    privateKeyPath:       String,
+    clusterSize:          Int              = 1,
     port:                 Int              = 22,
     queue:                Option[String]   = None,
     openMOLEMemory:       Option[Int]      = None,
@@ -37,27 +49,37 @@ object AWSEnvironment {
     threads:              Option[Int]      = None,
     storageSharedLocally: Boolean          = false,
     name:                 Option[String]   = None
-  )(implicit decrypt: Decrypt) =
+  ) =
     new AWSEnvironment(
-      user = user,
-      host = host,
-      port = port,
-      queue = queue,
-      openMOLEMemory = openMOLEMemory,
-      wallTime = wallTime,
-      memory = memory,
-      sharedDirectory = sharedDirectory,
-      workDirectory = workDirectory,
-      threads = threads,
-      storageSharedLocally = storageSharedLocally,
-      name = name
-    )(SSHAuthentication.find(user, host, port).apply)
+      region,
+      awsUserName,
+      awsUserId,
+      awsKeypairName,
+      awsCredentialsPath,
+      privateKeyPath,
+      clusterSize,
+      port,
+      queue,
+      openMOLEMemory,
+      wallTime,
+      memory,
+      sharedDirectory,
+      workDirectory,
+      threads,
+      storageSharedLocally,
+      name
+    )
 }
 
 class AWSEnvironment(
-    val user:                    String,
-    val host:                    String,
-    override val port:           Int,
+    val region:                  String,
+    val awsUserName:             String,
+    val awsUserId:               String,
+    val awsKeypairName:          String,
+    val awsCredentialsPath:      String,
+    val privateKeyPath:          String,
+    val clusterSize:             Int,
+    val port:                    Int,
     val queue:                   Option[String],
     override val openMOLEMemory: Option[Int],
     val wallTime:                Option[Duration],
@@ -67,15 +89,51 @@ class AWSEnvironment(
     override val threads:        Option[Int],
     val storageSharedLocally:    Boolean,
     override val name:           Option[String]
-)(val credential: fr.iscpif.gridscale.ssh.SSHAuthentication) extends ClusterEnvironment with MemoryRequirement { env ⇒
+) extends ClusterEnvironment with MemoryRequirement { env ⇒
 
   type JS = AWSJobService
 
+  def user = Root
+  def host = jobService.jobService.starcluster.masterIp
+  def credential = sshPrivateKey(PrivateKey(user, new File(jobService.jobService.starcluster.privateKeyPath), ""))
+
+  val config = new GSAWSJobService.Config(region, awsUserName, awsUserId, awsKeypairName, awsCredentialsPath, privateKeyPath, clusterSize)
+
   @transient lazy val jobService = new AWSJobService with ThisHost {
+    override lazy val jobService: GSAWSJobService = createAWSJobService(this, config)
     def queue = env.queue
     def environment = env
     def sharedFS = storage
     def id = url.toString
+    def sharedDirectory = jobService.sharedHome
     def workDirectory = env.workDirectory
+  }
+
+  def createAWSJobService(js: AWSJobService, config: GSAWSJobService.Config) = {
+    val (keyId, secretKey) = readAWSCredentials(config.awsUserName, config.awsCredentialsPath)
+    val starclusterConfig = new Starcluster.Config(
+      awsKeyId = keyId,
+      awsSecretKey = secretKey,
+      awsUserId = config.awsUserId,
+      privateKeyPath = config.privateKeyPath,
+      instanceType = DefaultInstanceType,
+      size = config.clusterSize
+    )
+
+    val gsAWSJobService = new GSAWSJobService with SSHConnectionCache {
+      override val credential = createCredential(config.privateKeyPath)
+      override lazy val host = createHost(coordinator)
+      override val port = js.port
+      override val timeout = Workspace.preference(SSHService.timeout)
+      override val region = config.region
+      override val awsKeypairName = config.awsKeypairName
+      override val client = createClient(keyId, secretKey)
+      override val starcluster = Starcluster(this, starclusterConfig)
+      override lazy val sge = createSGEJobService(starcluster)
+    }
+
+    gsAWSJobService.start()
+
+    gsAWSJobService
   }
 }
