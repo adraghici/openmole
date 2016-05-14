@@ -29,8 +29,12 @@ object Environment extends PluginDefaults {
   lazy val sge = OsgiProject("sge", imports = Seq("*")) dependsOn (Core.exception, Core.workspace, Core.batch, gridscale, ssh) settings
     (libraryDependencies += Libraries.gridscaleSGE)
 
-  lazy val aws = OsgiProject("aws", imports = Seq("!org.jclouds.compute.*", "!org.jclouds.compute", "*")) dependsOn (Core.exception, Core.workspace, Core.batch, gridscale, ssh) settings
-    (libraryDependencies += Libraries.gridscaleAWS)
+  lazy val aws = OsgiProject("aws", imports = Seq("!org.apache.jclouds", "!org.apache.jclouds.*", "!org.jclouds", "!org.jclouds.*", "*")) dependsOn (Core.exception, Core.workspace, Core.batch, gridscale, ssh) settings (
+    libraryDependencies += Libraries.gridscaleAWS,
+    libraryDependencies += "org.apache.jclouds" % "jclouds-all" % "1.9.2",
+    libraryDependencies += "org.apache.jclouds.driver" % "jclouds-sshj" % "1.9.2",
+    libraryDependencies += "org.apache.jclouds.driver" % "jclouds-log4j" % "1.9.2"
+  )
 
   lazy val condor = OsgiProject("condor", imports = Seq("*")) dependsOn (Core.exception, Core.workspace, Core.batch, gridscale, ssh) settings
     (libraryDependencies += Libraries.gridscaleCondor)
