@@ -30,7 +30,7 @@ object Environment extends PluginDefaults {
 
   lazy val sge = OsgiProject("sge", imports = Seq("*")) dependsOn (Core.dsl, Core.batch, gridscale, ssh) settings
     (libraryDependencies += Libraries.gridscaleSGE)
-
+  
   lazy val aws = OsgiProject("aws", imports = Seq("!org.jclouds.compute.*", "!org.jclouds.compute", "*")) dependsOn (Core.dsl, Core.batch, gridscale, ssh) settings
     (libraryDependencies += Libraries.gridscaleAWS)
 
