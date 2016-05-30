@@ -92,4 +92,5 @@ class PBSEnvironment(
     def workDirectory = env.workDirectory
   }
 
+  override def close() = ???
 }

@@ -95,4 +95,5 @@ class SSHEnvironment(
   override def maxUpdateInterval = Workspace.preference(UpdateInterval)
   override def incrementUpdateInterval = 0 second
 
+  override def close() = ???
 }

@@ -63,4 +63,6 @@ class DesktopGridEnvironment(
   override def finalize() = background { DesktopGridService.release(port) }
   override val storage = service.storage(this, port)
   override val jobService = service.jobService(this, port)
+
+  override def close() = ???
 }

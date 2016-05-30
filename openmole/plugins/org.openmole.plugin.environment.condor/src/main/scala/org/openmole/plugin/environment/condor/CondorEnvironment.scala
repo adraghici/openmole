@@ -99,4 +99,5 @@ class CondorEnvironment(
 
   def allJobServices = List(jobService)
 
+  override def close() = ???
 }

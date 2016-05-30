@@ -53,6 +53,7 @@ object BatchJobWatcher extends Logger {
 class BatchJobWatcher(environment: WeakReference[BatchEnvironment]) extends IUpdatableWithVariableDelay {
 
   val registry = new BatchJobWatcher.ExecutionJobRegistry
+  var envUsed = false
 
   import BatchJobWatcher._
 
@@ -63,6 +64,7 @@ class BatchJobWatcher(environment: WeakReference[BatchEnvironment]) extends IUpd
       case None ⇒ false
       case Some(env) ⇒
         Log.logger.fine("Watch jobs " + registry.allJobs.size)
+        if (registry.allJobs.nonEmpty) envUsed = true
 
         val (toKill, toSubmit) =
           atomic { implicit ctx ⇒
@@ -82,6 +84,8 @@ class BatchJobWatcher(environment: WeakReference[BatchEnvironment]) extends IUpd
 
         toSubmit.foreach(env.submit)
         toKill.foreach(ej ⇒ BatchEnvironment.jobManager ! Kill(ej))
+        if (toSubmit.isEmpty && toKill.isEmpty && envUsed && registry.allJobs.isEmpty && BatchEnvironment.jobManager.messageQueue.size == 0) env.close()
+
         true
     }
 

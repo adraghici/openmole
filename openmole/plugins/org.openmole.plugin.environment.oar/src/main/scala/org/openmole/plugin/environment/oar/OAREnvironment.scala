@@ -88,4 +88,5 @@ class OAREnvironment(
     def workDirectory = env.workDirectory
   }
 
+  override def close() = ???
 }
