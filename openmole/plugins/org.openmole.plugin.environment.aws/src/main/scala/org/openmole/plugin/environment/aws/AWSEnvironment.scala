@@ -39,6 +39,9 @@ object AWSEnvironment extends Logger {
     awsKeypairName:     String,
     awsCredentialsPath: String,
     privateKeyPath:     String,
+    masterInstanceType: String           = GSAWSJobService.MasterInstanceType,
+    nodeInstanceType:   String           = GSAWSJobService.NodeInstanceType,
+    spotBid:            Option[Double]   = None,
     clusterSize:        Int              = 1,
     queue:              Option[String]   = None,
     openMOLEMemory:     Option[Int]      = None,
@@ -54,6 +57,9 @@ object AWSEnvironment extends Logger {
       awsKeypairName,
       awsCredentialsPath,
       privateKeyPath,
+      masterInstanceType,
+      nodeInstanceType,
+      spotBid,
       clusterSize,
       queue,
       openMOLEMemory,
@@ -73,6 +79,9 @@ class AWSEnvironment(
     val awsKeypairName:          String,
     val awsCredentialsPath:      String,
     val privateKeyPath:          String,
+    val masterInstanceType:      String,
+    val nodeInstanceType:        String,
+    val spotBid:                 Option[Double],
     val clusterSize:             Int,
     val queue:                   Option[String],
     override val openMOLEMemory: Option[Int],
@@ -93,7 +102,7 @@ class AWSEnvironment(
   def host = jobService.jobService.starcluster.masterIp
   def credential = sshPrivateKey(PrivateKey(user, new File(jobService.jobService.starcluster.privateKeyPath), ""))
 
-  val config = new GSAWSJobService.Config(region, awsUserName, awsUserId, awsKeypairName, awsCredentialsPath, privateKeyPath, clusterSize)
+  val config = new GSAWSJobService.Config(region, awsUserName, awsUserId, awsKeypairName, awsCredentialsPath, privateKeyPath, masterInstanceType, nodeInstanceType, spotBid, clusterSize)
 
   @transient lazy val jobService = new AWSJobService with ThisHost {
     override lazy val jobService: GSAWSJobService = createAWSJobService(this, config)
@@ -108,11 +117,14 @@ class AWSEnvironment(
   def createAWSJobService(js: AWSJobService, config: GSAWSJobService.Config) = {
     val (keyId, secretKey) = readAWSCredentials(config.awsUserName, config.awsCredentialsPath)
     val starclusterConfig = new Starcluster.Config(
+      region = config.region,
       awsKeyId = keyId,
       awsSecretKey = secretKey,
       awsUserId = config.awsUserId,
       privateKeyPath = config.privateKeyPath,
-      instanceType = DefaultInstanceType,
+      masterInstanceType = config.masterInstanceType,
+      nodeInstanceType = config.nodeInstanceType,
+      spotBid = config.spotBid,
       size = config.clusterSize
     )
 
